@@ -15,4 +15,14 @@ Note, however that these do not have any effect to the original repository, as t
 ## Walkthrough
 Obtaining the P4 environment (easiest way is to download the VirtualBox image) is the reader's responsibilty. There is a bunch of howtos on this, please browse the [main P4 site's events page](https://p4.org/events/), for instance, instructions for downloading the VM can be found on the site of [East Coast P4 Developer Day, Spring 2018](https://p4.org/events/2018-03-09-p4-developer-day/).
 
-After booting up the VM, get into the directory of one of the tutorials:...
+After booting up the VM, clone this git repository:
+```
+$ cd /tmp/
+$ git clone https://github.com/cslev/p4tutorial
+```
+Then, copy the corresponding directories (e.g., l2_switch) into the directory of exercises in one of the tutorials:
+```
+$ cp -r /tmp/p4tutorial/l2_switch* /home/p4/tutorials/P4D2_2018_East/exercises
+```
+
+Now, you are ready to go, please refer to the README.md files located in the different tutorials' directories!
