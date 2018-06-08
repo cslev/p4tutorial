@@ -1,0 +1,10 @@
+table_set_default arp_exact drop
+table_add arp_exact arp_reply 10.0.0.1 => 00:00:00:00:00:01
+table_add arp_exact arp_reply 10.0.0.2 => 00:00:00:00:00:02
+table_add arp_exact arp_reply 10.0.0.3 => 00:00:00:00:00:03
+
+
+table_set_default l2forward_exact drop
+table_add l2forward_exact l2_forward 00:00:00:00:00:01 => 1
+table_add l2forward_exact l2_forward 00:00:00:00:00:02 => 2
+table_add l2forward_exact l2_forward 00:00:00:00:00:03 => 3
