@@ -1,59 +1,35 @@
-# Implementing Basic Forwarding
+# Implementing Layer-2 Forwarding
 
 ## Introduction
 
-The objective of this exercise is to write a P4 program that
-implements basic forwarding. To keep things simple, we will just
-implement forwarding for IPv4.
-
-With IPv4 forwarding, the switch must perform the following actions
-for every packet: (i) update the source and destination MAC addresses,
-(ii) decrement the time-to-live (TTL) in the IP header, and (iii)
-forward the packet out the appropriate port.
- 
-Your switch will have a single table, which the control plane will
-populate with static rules. Each rule will map an IP address to the
-MAC address and output port for the next hop. We have already defined
-the control plane rules, so you only need to implement the data plane
-logic of your P4 program.
+The objective of this exercise is to extend the previous `l2_switch` P4 application with P4Runtime support, i.e., the control plane will not populate the flow tables via the CLI (e.g., `sX-commands.txt`), but rather implement the logic in a P4Runtime controller.
+If you have not completed the pure **l2_switch** example, please do it first and refer to its step when doing this tutorial, as the same functioning will be realized.
 
 > **Spoiler alert:** There is a reference solution in the `solution`
 > sub-directory. Feel free to compare your implementation to the
 > reference.
 
-## Step 1: Run the (incomplete) starter code
+## First steps
 
-The directory with this README also contains a skeleton P4 program,
-`basic.p4`, which initially drops all packets. Your job will be to
-extend this skeleton program to properly forward IPv4 packets.
+As it was in case of our previous `l2_switch` example, if the mininet system and the switch code is compiled, the forwarding will not work, as the flow tables of the switches are empty.
 
-Before that, let's compile the incomplete `basic.p4` and bring
-up a switch in Mininet to test its behavior.
-
+To test, do the following steps:
 1. In your shell, run:
    ```bash
    make run
    ```
-   This will:
-   * compile `basic.p4`, and
-   * start a Mininet instance with three switches (`s1`, `s2`, `s3`)
-     configured in a triangle, each connected to one host (`h1`, `h2`,
-     and `h3`).
-   * The hosts are assigned IPs of `10.0.1.1`, `10.0.2.2`, and `10.0.3.3`.
-
 2. You should now see a Mininet command prompt. Open two terminals
 for `h1` and `h2`, respectively:
    ```bash
    mininet> xterm h1 h2
    ```
-3. Each host includes a small Python-based messaging client and
-server. In `h2`'s xterm, start the server:
+3. At each host, one can check that none of them knows the others' MAC address
    ```bash
-   ./receive.py
+   arp -n
    ```
-4. In `h1`'s xterm, send a message to `h2`:
+4. In `h1`'s xterm, ping `h2`:
    ```bash
-   ./send.py 10.0.2.2 "P4 is cool"
+   ping 10.0.0.2
    ```
    The message will not be received.
 5. Type `exit` to leave each xterm and the Mininet command line.
@@ -66,90 +42,45 @@ server. In `h2`'s xterm, start the server:
    make clean
    ```
 
-The message was not received because each switch is programmed
-according to `basic.p4`, which drops all packets on arrival.
-Your job is to extend this file so it forwards packets.
 
-### A note about the control plane
+## Step 2: Implement the ARP responder and the Layer-2 forwarding
 
-A P4 program defines a packet-processing pipeline, but the rules
-within each table are inserted by the control plane. When a rule
-matches a packet, its action is invoked with parameters supplied by
-the control plane as part of the rule.
+The `l2_switch.p4` file contains the working P4 implementation of the switch.
+This time, we only write the controller, which a skeleton implementation in Python is provided for.
+Open `l2_switch_controller.py` and replace the `TODO` comments with the control logic.
 
-In this exercise, we have already implemented the the control plane
-logic for you. As part of bringing up the Mininet instance, the
-`make run` command will install packet-processing rules in the tables of
-each switch. These are defined in the `sX-commands.txt` files, where
-`X` corresponds to the switch number.
+A complete `l2_switch_controller.py` will contain the following components:
 
-**Important:** A P4 program also defines the interface between the
-switch pipeline and control plane. The commands in the files
-`sX-commands.txt` refer to specific tables, keys, and actions by name,
-and any changes in the P4 program that add or rename tables, keys, or
-actions will need to be reflected in these command files.
-
-## Step 2: Implement L3 forwarding
-
-The `basic.p4` file contains a skeleton P4 program with key pieces of
-logic replaced by `TODO` comments. Your implementation should follow
-the structure given in this file---replace each `TODO` with logic
-implementing the missing piece.
-
-A complete `basic.p4` will contain the following components:
-
-1. Header type definitions for Ethernet (`ethernet_t`) and IPv4 (`ipv4_t`).
-2. **TODO:** Parsers for Ethernet and IPv4 that populate `ethernet_t` and `ipv4_t` fields.
-3. An action to drop a packet, using `mark_to_drop()`.
-4. **TODO:** An action (called `ipv4_forward`) that:
-	1. Sets the egress port for the next hop. 
-	2. Updates the ethernet destination address with the address of the next hop. 
-	3. Updates the ethernet source address with the address of the switch. 
-	4. Decrements the TTL.
-5. **TODO:** A control that:
-    1. Defines a table that will read an IPv4 destination address, and
-       invoke either `drop` or `ipv4_forward`.
-    2. An `apply` block that applies the table.   
-6. **TODO:** A deparser that selects the order
-    in which fields inserted into the outgoing packet.
-7. A `package` instantiation supplied with the parser, control, and deparser.
-    > In general, a package also requires instances of checksum verification
-    > and recomputation controls. These are not necessary for this tutorial
-    > and are replaced with instantiations of empty controls.
+1. `writeArpRules` function showing how a specific `table_entry` should be assembled to push down to a P4 switch.
+2. **TODO:** similarly to writeArpRules(), create a `table_entry `for the `l2forward_exact` and fill out the corresponding fields set as params
+3. The control plane logic is found in the main function. The logic is just a couple of dictionaries containing the fundamental topology information needed for the ARP RESPONSE packet crafint and the practical Layer-2 forwarding.
+4. First, a connection is needed to be established to each switch. An example of connecting to a switch can be defined like this:
+`p4runtime_lib.bmv2.Bmv2SwitchConnection('s1', address='127.0.0.1:50051', device_id=0)`
+5. **TODO** Iterate through all switches and establish the connection (switch `sX` is under 127.0.0.1:5005`X` and its device id is `X-1`)
+6. **TODO** Install P4 program into each switch by using the p4info files. An example of this can be found below:
+`switch_connection_reference.SetForwardingPipelineConfig(p4info=p4info_helper.p4info, bmv2_json_file_path=bmv2_file_path)`
+7. **TODO** Write ARP rules according to hosts_mac dict()
+8. **TODO** Write L2 forwarding rules according to switch_port dict(dict())
+9. **Optional TODO** Use function `readTablesRules()` to print out the table rules for debugging
 
 ## Step 3: Run your solution
 
-Follow the instructions from Step 1. This time, your message from
-`h1` should be delivered to `h2`.
-
-### Food for thought
-
-The "test suite" for your solution---sending a message from `h1` to
-`h2`---is not very robust. What else should you test to be confident
-of your implementation?
-
-> Although the Python `scapy` library is outside the scope of this tutorial,
-> it can be used to generate packets for testing. The `send.py` file shows how
-> to use it.
-
-Other questions to consider:
- - How would you enhance your program to support next hops?
- - Is this program enough to replace a router?  What's missing?
-
+Follow the instructions from Step 1. This time, ping from
+`h1` should be working  to `h2`.
 ### Troubleshooting
 
 There are several problems that might manifest as you develop your program:
 
-1. `basic.p4` might fail to compile. In this case, `make run` will
+1. `l2_switch.p4` might fail to compile. In this case, `make run` will
 report the error emitted from the compiler and halt.
 
-2. `basic.p4` might compile but fail to support the control plane
+2. `l2_switch.p4` might compile but fail to support the control plane
 rules in the `s1-commands.txt` through `s3-command.txt` files that
 `make run` tries to install using the Bmv2 CLI. In this case, `make run`
 will log the CLI tool output in the `logs` directory. Use these error 
-messages to fix your `basic.p4` implementation.
+messages to fix your `l2_switch.p4` implementation.
 
-3. `basic.p4` might compile, and the control plane rules might be
+3. `l2_switch.p4` might compile, and the control plane rules might be
 installed, but the switch might not process packets in the desired
 way. The `/tmp/p4s.<switch-name>.log` files contain detailed logs
 that describing how each switch processes each packet. The output is
@@ -162,7 +93,7 @@ running in the background. Use the following command to clean up
 these instances:
 
 ```bash
-make stop
+make stop && make clean
 ```
 
 ## Next Steps
