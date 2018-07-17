@@ -3,6 +3,7 @@
 #include <v1model.p4>
 
 const bit<16> TYPE_IPV4 = 0x0800;
+const bit<16> TYPE_ARP  = 0x0806;
 
 // ARP RELATED CONST VARS
 const bit<16> ARP_HTYPE = 0x0001; //Ethernet Hardware type is 1
@@ -11,7 +12,7 @@ const bit<8>  ARP_HLEN  = 6; //Ethernet address size is 6 bytes
 const bit<8>  ARP_PLEN  = 4; //IP address size is 4 bytes
 const bit<16> ARP_REQ = 1; //Operation 1 is request
 const bit<16> ARP_REPLY = 2; //Operation 2 is reply
-]
+
 /* FURTHER ARP HEADER FIELDS TO BE AWARE OF
  * bit<48> ARP_SRC_MAC (requester's MAC)
  * bit<32> ARP_SRC_IP  (tell DST_MAC to this IP)
